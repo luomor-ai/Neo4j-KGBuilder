@@ -10,45 +10,29 @@
     <!--导入-->
     <div v-show="operate == 'import'" class="pd-20">
       <el-form>
-        <el-popover
-            placement="right"
-            width="400"
-            trigger="hover">
-            <div v-if="uploadParam.type==0">
-              <el-table
-                :data="tableData"
-                style="width: 100%">
-                <el-table-column
-                  prop="nodeStart"
-                  label="起始节点"
-                  width="180">
-                </el-table-column>
-                <el-table-column
-                  prop="nodeEnd"
-                  label="结束节点"
-                  width="180">
-                </el-table-column>
-                <el-table-column
-                  prop="ship"
-                  label="关系">
-                </el-table-column>
-              </el-table>
-            </div>
-            <div v-else>
-              <img style="width: 300px;" :src="uploadTips.img" />
-            </div>
-            <el-alert slot="reference" :title="uploadTips.tips" type="success"></el-alert>
-        </el-popover>
         <el-form-item label="类型" label-width="120px">
           <el-radio-group v-model="uploadParam.type">
-            <el-radio
-              @change="radioClick(m)"
-              :key="m.id"
-              v-for="m in uploadTipsArr"
-              :label="m.type"
-              >{{ m.name }}</el-radio
-            >
+            <el-radio key="index-1" label="1">三元组</el-radio>
+            <el-radio key="index-2" label="2">单元格树</el-radio>
           </el-radio-group>
+        </el-form-item>
+        <el-form-item>
+          <div v-if="uploadParam.type==1">
+             <div>导入csv或者excel，三元组结构:节点-节点-关系如果是csv,注意字符集为utf-8无bom格式<br/>【不会的用记事本打开，然后另存为，选择utf-8 无bom】)</div>
+              <el-carousel >
+                <el-carousel-item v-for="item in [require('@/assets/sanyuanzuimport1.png'),require('@/assets/sanyuanzuimport2.png')]" :key="item">
+                  <img  :src="item" />
+                </el-carousel-item>
+              </el-carousel>
+            </div>
+            <div v-else style="max-height:calc(100vh - 80px);over-flow-y:scroll">
+              <div>支持合并单元格，设置颜色，设置关系需在节点后以###拼接，只识别一组关系</div>
+              <el-carousel height="450px">
+              <el-carousel-item v-for="item in [require('@/assets/treeimport1.png'),require('@/assets/treeimport2.png')]" :key="item">
+                  <img :src="item"  style="height: 500px;"/>
+                </el-carousel-item>
+              </el-carousel>
+            </div>
         </el-form-item>
         <el-form-item label="图谱领域" label-width="120px">
           <el-input
@@ -62,11 +46,11 @@
           <el-upload
             class=""
             ref="uploadExcel"
-            :action="uploadUrl"
+            :action="uploadGraphUrl"
             accept=".csv,.xls,.xlsx"
             :show-file-list="true"
             :data="uploadParam"
-            :on-success="csvSuccess"
+            :on-success="uploadExcelSuccess"
             :auto-upload="false"
           >
             <el-button
@@ -79,7 +63,7 @@
           </el-upload>
         </el-form-item>
         <el-form-item label-width="120px">
-          <el-button @click="dialogFormVisible = false">取 消</el-button>
+          <el-button @click="resetSubmit">取 消</el-button>
           <el-button type="primary" @click="submitUpload">确 定</el-button>
         </el-form-item>
       </el-form>
@@ -121,7 +105,7 @@
               </el-color-picker>
             </el-form-item>
             <el-form-item label="节点半径" label-width="120px">
-              <el-slider v-model="graphData.r" style="width:324px"></el-slider>
+              <el-slider :min="25" v-model="graphData.r" style="width:324px"></el-slider>
             </el-form-item>
           </el-form>
         </el-tab-pane>
@@ -133,13 +117,15 @@
                 name="file"
                 ref="upload"
                 :headers="uploadHeader"
-                :action="uploadImageUrl"
+                :action="uploadFileUrl"
                 accept=".jpg,.png"
-                multiple
+                :multiple="false"
                 :show-file-list="false"
                 :data="uploadImageParam"
+                :before-upload="beforeUpload"
                 :on-success="uploadSuccess"
                 :auto-upload="true"
+                :limit="1"
               >
                 <el-button slot="trigger" size="small" type="primary"
                   >选择</el-button
@@ -245,7 +231,7 @@
         </el-form-item>
         <el-form-item label-width="120px">
           <el-button type="primary" @click="batchCreateChildNode">确定</el-button>
-          <el-button>取消</el-button>
+          <el-button @click="resetSubmit">取消</el-button>
         </el-form-item>
       </el-form>
 
@@ -303,18 +289,19 @@ export default {
       uploadHeader:{
         // 'Content-Type': 'multipart/form-data'
       },
-      uploadUrl:  process.env.VUE_APP_BASE_API+"/importGraph",
+      uploadGraphUrl:  process.env.VUE_APP_BASE_API+"/importGraph",
       direction: "rtl",
       drawerShow: false,
       operate: "",
       batchCreateData:{
+        sourceUuid:'',
         sourceName: '',
         targetNames: '',
         relation: ''
       },
       propActiveName: "propEdit",
       contentActiveName: "propImage",
-      uploadImageUrl: process.env.VUE_APP_BASE_API+"/qiniu/upload",
+      uploadFileUrl: process.env.VUE_APP_BASE_API+"/file/upload",
       graphData:{
         uuid: '0',
         color: "ff4500",
@@ -335,65 +322,30 @@ export default {
       uploadImageParam: {},
       nodeImageList: [],
       netImageUrl: "",
-      uploadParam: { domain: "", type: 0 },
-      uploadTips: {
-        tips: "csv导入，注意字符集为utf-8无bom格式，三元组结构:节点-节点-关系(鼠标滑动到此处看模板)",
-        img: ""
-      },
-      uploadTipsArr: [
-      {
-        tips: "csv导入，注意字符集为utf-8无bom格式，三元组结构:节点-节点-关系(鼠标滑动到此处看模板)",
-        name: "三元组",
-        img: "",
-        type: 0
-      },
-      {
-        tips:
-          "支持合并单元格，设置颜色，设置关系需在节点后以###拼接，只识别一组关系(鼠标滑动到此处看模板)",
-        name: "单元格树",
-        img: "http://file.miaoleyan.com/image-20211114183140256.png",
-        type: 1
-      }
-    ],
-    tableData:[
-      {
-            nodeStart: '周杰伦',
-            nodeEnd: '1979年1月18日',
-            ship: '生日'
-          }, {
-            nodeStart: '周杰伦',
-            nodeEnd: '台湾省新北市',
-            ship: '籍贯'
-          }, {
-            nodeStart: '周杰伦',
-            nodeEnd: '昆凌',
-            ship: '妻子'
-          }, {
-            nodeStart: '昆凌',
-            nodeEnd: 'Romeo',
-            ship: '儿子'
-          },
-          , {
-            nodeStart: '周杰伦',
-            nodeEnd: 'Romeo',
-            ship: '儿子'
-          }
-    ]
+      uploadParam: { domain: "", type: '1' },
     };
   },
   components: {},
   methods: {
-    init(drawerShow,operate) {
+    init(drawerShow,operate,domain) {
       this.operate = operate;
       this.drawerShow = drawerShow;
+       this.uploadParam.domain=domain;
+        this.propActiveName="propEdit";
     },
     initNode(drawerShow,operate,node,domainId) {
       this.operate = operate;
       this.drawerShow = drawerShow;
-      // node.r=parseInt(node.r);
-      // node.uuid=parseInt(node.uuid);
       this.domainId=domainId;
       this.graphData=node;
+       this.propActiveName="propEdit";
+    },
+    initBatchAddChild(drawerShow,operate,node,domain) {
+      this.operate = operate;
+      this.drawerShow = drawerShow;
+      this.domain=domain;
+      this.batchCreateData.sourceUuid=node.uuid;
+       this.propActiveName="propEdit";
     },
     batchCreateNode(){
       this.init(false,"");
@@ -420,28 +372,20 @@ export default {
     bthRecognition(){
 
     },
-    radioClick(m) {
-      this.uploadTips = m;
-    },
     resetSubmit() {
-
+      this.drawerShow=false;
+       this.propActiveName="propEdit"
     },
     //节点上传图片
     saveNodeImage() {
       let data = {
         domainId: this.domainId,
         nodeId: this.graphData.uuid,
-        imageList: JSON.stringify(this.nodeImageList)
+        //imageList: JSON.stringify(this.nodeImageList)
+        imagePath: this.nodeImageList[0].file
       };
-      kgBuilderApi.saveNodeImage(JSON.stringify(data)).then(result => {
-        if (result.code == 200) {
-          this.init(false,"");
-          this.$message({
-            message: "操作成功",
-            type: "success"
-          });
-        }
-      });
+      this.init(false,"");
+      this.$emit("saveNodeImage",data);
     },
     //上传富文本
     saveNodeContent() {
@@ -450,24 +394,27 @@ export default {
         nodeId: this.graphData.uuid,
         content: this.editorContent
       };
-      kgBuilderApi.saveNodeContent(JSON.stringify(data)).then(result => {
-        if (result.code == 200) {
-          this.init(false,"");
-          this.$message({ message: "操作成功", type: "success" });
-        }
-      });
+      this.init(false,"");
+      this.$emit("saveNodeContent",data);
     },
     //预览图片
     handlePictureCardPreview(item) {
       this.dialogImageUrl = this.imageUrlFormat(item);
-      debugger
       this.dialogImageVisible = true;
     },
     //添加网络图片
     addNetImage() {
       if (this.netImageUrl != "") {
-        this.nodeImageList.push({ file: this.netImageUrl, imageType: 1 });
-        this.netImageUrl = "";
+        if(this.nodeImageList.length==0){
+          this.nodeImageList.push({ file: this.netImageUrl, imageType: 1 });
+          this.netImageUrl = "";
+        }else{
+           this.$message({
+          message: '一个节点只能使用一张图片,如果有多张图片，可以添加到富文本中',
+          type: 'warning'
+        });
+        }
+
       }
     },
     //移除图片
@@ -476,16 +423,27 @@ export default {
     },
     //图片格式化
     imageUrlFormat(item) {
-      return item.file;
+      if(item.file.indexOf("http")===0){
+        return item.file;
+      }else{
+        return process.env.VUE_APP_BASE_API+item.file;
+      }
     },
-    dbImageUrlFormat(item) {
-      return item.fileName;
+    beforeUpload(){
+      if(this.nodeImageList.length>0){
+         this.$message({
+          message: '一个节点只能使用一张图片,如果有多张图片，可以添加到富文本中',
+          type: 'warning'
+        });
+      }
     },
     uploadSuccess(res, file) {
       if (res.success == 1) {
         for (let i = 0; i < res.results.length; i++) {
           let fileItem = res.results[i];
-          this.nodeImageList.push({ fileUrl: fileItem.url });
+          if(this.nodeImageList.length==0){
+            this.nodeImageList.push({ file: fileItem.url, imageType: 0 });
+          }
         }
       } else {
         this.$message.error(res.msg);
@@ -500,7 +458,7 @@ export default {
       };
       this.editor.config.uploadFileName = "file";
       //this.editor.config.uploadImgHeaders = headers;
-      this.editor.config.uploadImgServer = process.env.VUE_APP_BASE_API+"/qiniu/upload"; // 上传图片到服务器
+      this.editor.config.uploadImgServer = process.env.VUE_APP_BASE_API+"/file/upload"; // 上传图片到服务器
       this.editor.config.uploadImgHooks = {
         // 如果服务器端返回的不是 {errno:0, data: [...]} 这种格式，可使用该配置
         // （但是，服务器端返回的必须是一个 JSON 格式字符串！！！否则会报错）
@@ -509,7 +467,7 @@ export default {
           // insertImg 是插入图片的函数，editor 是编辑器对象，result 是服务器端返回的结果
           for (let i = 0; i < res.results.length; i++) {
             let fileItem = res.results[i];
-            insertImg(fileItem.url);
+            insertImg(process.env.VUE_APP_BASE_API+fileItem.url);
           }
         }
       };
@@ -519,12 +477,12 @@ export default {
       if (tab.name == "richTextEdit") {
         this.initEditor();
         this.editorContent = "";
-        this.$emit("initNodeContent");
+        this.$emit("initNodeContent",{domainId:this.domainId,nodeId:this.graphData.uuid});
 
       }
       if (tab.name == "propImage") {
         this.nodeImageList = [];
-        this.$emit("initNodeImage");
+        this.$emit("initNodeImage",{domainId:this.domainId,nodeId:this.graphData.uuid});
       }
     },
     exportCsv() {
@@ -532,7 +490,7 @@ export default {
       kgBuilderApi.exportGraph(data).then(result => {
         if (result.code == 200) {
           this.exportFormVisible = false;
-          window.open(result.csvUrl);
+          window.open(process.env.VUE_APP_BASE_API+result.csvUrl);
         }
       });
     },
@@ -543,11 +501,11 @@ export default {
        //刷新领域标签
        this.$emit("getDomain",1);
     },
-    csvSuccess() {
-      this.$refs.upload.clearFiles();
+    uploadExcelSuccess() {
+      this.$refs.uploadExcel.clearFiles();
       this.uploadParam.domain = "";
       this.$message({
-        message: "正在导入中,请稍后查看",
+        message: "操作成功",
         type: "success"
       });
     },

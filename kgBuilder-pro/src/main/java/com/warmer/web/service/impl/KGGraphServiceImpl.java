@@ -15,6 +15,7 @@ import com.warmer.web.model.TreeExcel;
 import com.warmer.web.model.TreeExcelRecordData;
 import com.warmer.web.request.GraphQuery;
 
+import com.warmer.web.request.NodeCoordinateItem;
 import com.warmer.web.service.CategoryNodeService;
 import com.warmer.web.service.KgGraphNodeService;
 import com.warmer.web.service.KgGraphService;
@@ -138,7 +139,7 @@ public class KGGraphServiceImpl implements KgGraphService {
     }
 
     @Override
-    public void batchcreateGraph(String domain, List<Map<String, Object>> params) {
+    public void batchCreateGraph(String domain, List<Map<String, Object>> params) {
         kgRepository.batchCreateGraph(domain, params);
     }
 
@@ -148,8 +149,23 @@ public class KGGraphServiceImpl implements KgGraphService {
     }
 
     @Override
+    public void updateNodeImg(String domain, long nodeId, String img) {
+        kgRepository.updateNodeImg(domain,nodeId,img);
+    }
+
+    @Override
+    public void removeNodeImg(String domain, long nodeId) {
+
+    }
+
+    @Override
     public void updateCoordinateOfNode(String domain, String uuid, Double fx, Double fy) {
         kgRepository.updateCoordinateOfNode(domain,uuid,fx,fy);
+    }
+
+    @Override
+    public void batchUpdateGraphNodesCoordinate(String domain, List<NodeCoordinateItem> nodes) {
+        kgRepository.batchUpdateGraphNodesCoordinate(domain,nodes);
     }
 
     @Override
@@ -158,7 +174,7 @@ public class KGGraphServiceImpl implements KgGraphService {
     }
 
     @Override
-    public void importBySyz(MultipartFile file,HttpServletRequest request,String label) throws Exception {
+    public void importBySyz(MultipartFile file,HttpServletRequest request,String label,Integer isCreateIndex) throws Exception {
         List<Map<String, Object>> dataList = getFormatData(file);
         List<List<String>> list = new ArrayList<>();
         for (Map<String, Object> item : dataList) {
@@ -172,9 +188,9 @@ public class KGGraphServiceImpl implements KgGraphService {
         String filename = "tc" + System.currentTimeMillis() + ".csv";
         CSVUtil.createCsvFile(list, savePath,filename);
         String serverUrl=request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
-        String csvUrl = "http://"+serverUrl+ "/download/" + filename;
+        String csvUrl = "http://"+serverUrl+ "/file/download/" + filename;
         //String csvUrl = "https://neo4j.com/docs/cypher-manual/3.5/csv/artists.csv";
-        batchInsertByCSV(label, csvUrl, 0);
+        batchInsertByCSV(label, csvUrl, isCreateIndex);
     }
     private List<Map<String, Object>> getFormatData(MultipartFile file) throws Exception {
         List<Map<String, Object>> mapList = new ArrayList<>();
@@ -195,6 +211,7 @@ public class KGGraphServiceImpl implements KgGraphService {
                     int rowSize = sheet.getPhysicalNumberOfRows();
                     for (int j = 0; j < rowSize; j++) {
                         Row row = sheet.getRow(j);
+                        if(row==null) continue;
                         int cellSize = row.getPhysicalNumberOfCells();
                         if (cellSize != 3) continue; //只读取3列
                         row.getCell(0).setCellType(Cell.CELL_TYPE_STRING);

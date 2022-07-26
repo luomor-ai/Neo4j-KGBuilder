@@ -22,6 +22,12 @@ class kgBuilderApi extends BaseAPI{
     })
 
   }
+  execute(domainId) {
+    return this.get('/er/execute', {
+      domainId
+    })
+
+  }
   getDomains(data) {
     return this.post("/getGraph",data,{
       headers: {
@@ -31,10 +37,11 @@ class kgBuilderApi extends BaseAPI{
   );
   }
   createDomain(data) {
-    return request({
-      url: "/createDomain?domain=" + data.name + "&type=" + data.type,
-      method: "get"
-    });
+    return this.get("/createDomain",data);
+    // return request({
+    //   url: "/createDomain?domain=" + data.domain + "&type=" + data.type,
+    //   method: "get"
+    // });
   }
   getCypherResult(data) {
     return this.get("/getCypherResult",data);
@@ -73,7 +80,7 @@ class kgBuilderApi extends BaseAPI{
     return this.post("/getRelationNodeCount",data);
   }
   getMoreRelationNode(data) {
-    return this.post("/getMoreRelationNode",data);
+    return this.get("/getMoreRelationNode",data);
   }
   deleteDomain(data) {
     return this.post("/deleteDomain",data);

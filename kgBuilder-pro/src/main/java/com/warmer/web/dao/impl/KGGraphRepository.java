@@ -8,6 +8,7 @@ import com.warmer.web.model.NodeItem;
 import com.warmer.web.request.GraphQuery;
 import com.warmer.base.util.GraphPageRecord;
 import com.warmer.base.util.StringUtil;
+import com.warmer.web.request.NodeCoordinateItem;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -632,13 +633,26 @@ public class KGGraphRepository implements KGGraphDao {
             e.printStackTrace();
         }
     }
+    @Override
+    public void batchUpdateGraphNodesCoordinate(String domain,List<NodeCoordinateItem> params) {
+        try {
+            if (params != null && params.size() > 0) {
+                String nodeStr = Neo4jUtil.getFilterPropertiesJson(JsonHelper.toJSONString(params));
+                String nodeCypher = String
+                        .format("UNWIND %s as row " + " MATCH (n:`%s`)  where id(n)=row.uuid SET n.fx=row.fx,n.fy=row.fy", nodeStr, domain);
+                Neo4jUtil.runCypherSql(nodeCypher);
+            }
 
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     /**
      * 批量导入csv
      *
      */
     @Override
-    public void batchInsertByCsv(String domain, String csvUrl, int status) {
+    public void batchInsertByCsv(String domain, String csvUrl, int isCreateIndex) {
         String loadNodeCypher1 = null;
         String loadNodeCypher2 = null;
         String addIndexCypher = null;
@@ -653,7 +667,9 @@ public class KGGraphRepository implements KGGraphDao {
         loadRelCypher = " USING PERIODIC COMMIT 500 LOAD CSV FROM  '" + csvUrl + "' AS line " + " MATCH (m:`" + domain
                 + "`),(n:`" + domain + "`) WHERE m.name=line[0] AND n.name=line[1] " + " MERGE (m)-[r:" + type + "]->(n) "
                 + "	SET r.name=line[2];";
-        Neo4jUtil.runCypherSql(addIndexCypher);
+        if(isCreateIndex==0){//已经创建索引的不能重新创建
+            Neo4jUtil.runCypherSql(addIndexCypher);
+        }
         Neo4jUtil.runCypherSql(loadNodeCypher1);
         Neo4jUtil.runCypherSql(loadNodeCypher2);
         Neo4jUtil.runCypherSql(loadRelCypher);
@@ -669,7 +685,26 @@ public class KGGraphRepository implements KGGraphDao {
             e.printStackTrace();
         }
     }
+    @Override
+    public void updateNodeImg(String domain, long nodeId, String img) {
+        try {
+            String nodeCypher = String.format("match (n:`%s`) where id(n)=%s set n.image='%s' ", domain, nodeId, img);
+            Neo4jUtil.runCypherSql(nodeCypher);
 
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    @Override
+    public void removeNodeImg(String domain, long nodeId) {
+        try {
+            String nodeCypher = String.format("match (n:`%s`) where id(n)=%s remove n.image ", domain, nodeId);
+            Neo4jUtil.runCypherSql(nodeCypher);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     @Override
     public void updateCoordinateOfNode(String domain, String uuid, Double fx, Double fy) {
         String cypher = null;

@@ -8,12 +8,17 @@ const routes = [
   {
     path: "/",
     name: "Home",
-    component: () => import("../views/kgbuilder/index.vue")
+    component: () => import("../views/kgbuilder/index_v1.vue")
   },
   {
     path: "/builder",
     name: "builder",
     component: () => import("../views/kgbuilder/index.vue")
+  },
+  {
+    path: "/kg",
+    name: "kg",
+    component: () => import("../views/kgbuilder/index_v1.vue")
   },
   {
     path: "/er",
@@ -24,6 +29,11 @@ const routes = [
     path: "/ds",
     name: "ds",
     component: () => import("../views/datasource/index.vue")
+  },
+  {
+    path: "/icon",
+    name: "icon",
+    component: () => import("../views/icon/index.vue")
   },
   {
     path: "/about",

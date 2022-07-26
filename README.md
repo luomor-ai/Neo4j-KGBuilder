@@ -39,7 +39,8 @@ demo地址：[http://kg.miaoleyan.com](http://kg.miaoleyan.com)
   java -jar xxx.jar   //即可启动
 ```
 想部署到tomcat自行百度，springboot配置外部tomcat
-
+### 安装nodejs
+可参考[https://blog.csdn.net/qq_46351233/article/details/120314928](https://blog.csdn.net/qq_46351233/article/details/120314928)
 启动前端
 ```
 1.npm install // 安装依赖
@@ -50,7 +51,8 @@ demo地址：[http://kg.miaoleyan.com](http://kg.miaoleyan.com)
 
 ### 访问路径
 启动后访问[http://localhost](http://localhost) 
-
+### 启动视频教程
+[https://www.bilibili.com/video/BV1Ki4y1D7Nj?share_source=copy_web](https://www.bilibili.com/video/BV1Ki4y1D7Nj?share_source=copy_web)
 ### 图谱三元组导入
 支持,.xlsx,.xls,.csv，编码格式一定要是utf-8 无bom格式的，格式：节点-节点-关系，在本地测试时上传下载的文件要和neo4j在同一台电脑，当然如果能传到七牛或者hdfs上也是一样的，必须确认neo4j能访问到，否则load不成功
 ### 推荐前端组件
@@ -58,4 +60,5 @@ G6 [https://g6.antv.vision/zh/examples/gallery](https://g6.antv.vision/zh/exampl
 ### 推荐图数据库
 Nebula [https://docs.nebula-graph.com.cn/2.5.1/](https://docs.nebula-graph.com.cn/2.5.1/)
 ## 交流
-![](https://img-blog.csdnimg.cn/20201003145558813.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3BveGlhb21lbmcxODc=,size_16,color_FFFFFF,t_70#pic_center)
+![](./kgbuilder.jpg)
+![](./kgbuilder2.jpg)
